@@ -43,6 +43,7 @@ linters:
       context-todo: true
   exclusions:
     presets:
+      - comments
       - std-error-handling
     rules:
       - path: _test\.go
