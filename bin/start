@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+if ! docker compose up --build --detach --wait; then
+  docker compose logs --tail=50 api >&2
+  exit 1
+fi
+
+addr="$(docker compose port api 8080)"
+host="${addr%:*}"
+case "$host" in
+  0.0.0.0 | "[::]") host=127.0.0.1 ;;
+esac
+url="http://${host}:${addr##*:}/healthz"
+
+for _ in {1..20}; do
+  if curl -fsS "$url" >/dev/null 2>&1; then
+    echo "api ready: ${url%/healthz}"
+    exit 0
+  fi
+  sleep 0.5
+done
+
+echo "api not healthy after 10s" >&2
+docker compose logs --tail=50 api >&2
+exit 1
